@@ -1,0 +1,35 @@
+{
+    "name": "shario-admin",
+    "version": "1.0.0",
+    "description": "Admin Dashboard for Shario - Charity Sharing Platform",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "lint": "eslint . --ext .js,.jsx",
+        "format": "prettier --write ."
+    },
+    "dependencies": {
+        "axios": "^1.6.2",
+        "clsx": "^2.0.0",
+        "date-fns": "^2.30.0",
+        "lucide-react": "^0.307.0",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "react-router-dom": "^6.20.0",
+        "recharts": "^2.10.3",
+        "zustand": "^4.4.0"
+    },
+    "devDependencies": {
+        "@vitejs/plugin-react": "^4.2.0",
+        "autoprefixer": "^10.4.23",
+        "eslint": "^8.54.0",
+        "eslint-plugin-react": "^7.33.2",
+        "postcss": "^8.5.6",
+        "prettier": "^3.1.0",
+        "tailwindcss": "^3.4.19",
+        "vite": "^5.0.0"
+    }
+}
