@@ -68,17 +68,17 @@ export default function Sidebar() {
 
             {/* Sidebar */}
             <aside
-                className={`fixed top-0 left-0 h-screen bg-gradient-to-b from-blue-600 to-blue-700 text-white transition-all duration-300 ${isOpen ? "w-64" : "w-0"
+                className={`fixed top-0 left-0 h-screen bg-gradient-to-b from-emerald-500 to-emerald-600 text-white transition-all duration-300 ${isOpen ? "w-64" : "w-0"
                     } overflow-hidden md:w-64`}
             >
                 <div className="p-6">
                     <div className="flex items-center gap-3 mb-8">
                         <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                            <span className="font-bold text-blue-600">SA</span>
+                            <span className="font-bold text-emerald-600">SA</span>
                         </div>
                         <div>
                             <h1 className="font-bold">Shario Admin</h1>
-                            <p className="text-xs text-blue-100">Management</p>
+                            <p className="text-xs text-emerald-100">Management</p>
                         </div>
                     </div>
 
@@ -93,8 +93,8 @@ export default function Sidebar() {
                                     key={item.path}
                                     to={item.path}
                                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                        ? "bg-white text-blue-600"
-                                        : "text-blue-100 hover:bg-blue-500"
+                                        ? "bg-white text-emerald-600"
+                                        : "text-emerald-100 hover:bg-emerald-400"
                                         }`}
                                     onClick={() => window.innerWidth < 768 && setIsOpen(false)}
                                 >

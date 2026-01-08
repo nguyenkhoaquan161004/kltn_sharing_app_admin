@@ -1,28 +1,67 @@
 import { Users, ShoppingCart, Folder, Flag } from "lucide-react";
+import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
+import { adminApi } from "../services/api";
 
 export default function DashboardPage() {
-    const stats = [
-        { label: "Tổng User", value: "1,234", icon: Users, color: "bg-blue-500" },
+    const [stats, setStats] = useState([
+        { label: "Tổng User", value: "0", icon: Users, color: "bg-emerald-500", loading: true },
         {
             label: "Giao dịch hôm nay",
-            value: "45",
+            value: "0",
             icon: ShoppingCart,
-            color: "bg-green-500",
+            color: "bg-cyan-500",
+            loading: true,
         },
         {
             label: "Categories",
-            value: "12",
+            value: "0",
             icon: Folder,
-            color: "bg-orange-500",
+            color: "bg-yellow-500",
+            loading: true,
         },
         {
             label: "Reports",
-            value: "8",
+            value: "0",
             icon: Flag,
             color: "bg-red-500",
+            loading: true,
         },
-    ];
+    ]);
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, []);
+
+    const fetchDashboardData = async () => {
+        try {
+            // Fetch total users
+            const usersResponse = await adminApi.getAllUsers(0, 1);
+            const totalUsers = usersResponse.data.data.totalElements || 0;
+
+            // Fetch all categories
+            const categoriesResponse = await adminApi.getAllCategories();
+            const totalCategories = categoriesResponse.data.data.length || 0;
+
+            // Fetch today's transactions
+            const transactionsResponse = await adminApi.getAllTransactions(0, 100);
+            const todayTransactions = (transactionsResponse.data.data.content || []).filter(t => {
+                const transactionDate = new Date(t.createdAt);
+                const today = new Date();
+                return transactionDate.toDateString() === today.toDateString();
+            }).length;
+
+            setStats(prev => [
+                { ...prev[0], value: totalUsers.toString(), loading: false },
+                { ...prev[1], value: todayTransactions.toString(), loading: false },
+                { ...prev[2], value: totalCategories.toString(), loading: false },
+                { ...prev[3], value: "0", loading: false },
+            ]);
+        } catch (error) {
+            console.error("Error fetching dashboard data:", error);
+            setStats(prev => prev.map(stat => ({ ...stat, loading: false })));
+        }
+    };
 
     return (
         <Layout>
@@ -45,7 +84,11 @@ export default function DashboardPage() {
                                     <div>
                                         <p className="text-gray-500 text-sm">{stat.label}</p>
                                         <p className="text-3xl font-bold text-gray-900 mt-2">
-                                            {stat.value}
+                                            {stat.loading ? (
+                                                <span className="animate-pulse">...</span>
+                                            ) : (
+                                                stat.value
+                                            )}
                                         </p>
                                     </div>
                                     <div className={`${stat.color} p-3 rounded-lg`}>
@@ -58,7 +101,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Welcome Section */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-8 text-white mb-8">
+                <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg p-8 text-white mb-8">
                     <h2 className="text-2xl font-bold mb-2">Xin chào Admin!</h2>
                     <p>
                         Bạn đang quản lý hệ thống Shario - nền tảng chia sẻ từ thiện toàn

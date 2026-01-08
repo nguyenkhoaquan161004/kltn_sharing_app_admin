@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Trash2, Edit, Plus } from "lucide-react";
 import Layout from "../components/Layout";
 import { adminApi } from "../services/api";
+import { mockCategories } from "../services/mockData";
 
 export default function CategoriesPage() {
     const [categories, setCategories] = useState([]);
@@ -20,7 +21,8 @@ export default function CategoriesPage() {
             const response = await adminApi.getAllCategories();
             setCategories(response.data.data || []);
         } catch (err) {
-            setError(err.message);
+            setError("Không thể tải danh sách category");
+            console.error("Error fetching categories:", err);
         } finally {
             setLoading(false);
         }
@@ -32,10 +34,11 @@ export default function CategoriesPage() {
         try {
             await adminApi.deleteCategory(categoryId);
             setCategories(
-                categories.filter((c) => (c.id || c.categoryId) !== categoryId)
+                categories.filter((c) => c.id !== categoryId)
             );
+            alert("Xóa category thành công");
         } catch (err) {
-            alert("Lỗi: " + err.message);
+            alert("Lỗi: " + (err.response?.data?.message || err.message));
         }
     };
 
@@ -89,7 +92,7 @@ export default function CategoriesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {categories.map((category) => (
                         <div
-                            key={category.id || category.categoryId}
+                            key={category.id}
                             className="card p-6 hover:shadow-lg transition-shadow"
                         >
                             <div className="flex items-start justify-between mb-4">
@@ -110,7 +113,7 @@ export default function CategoriesPage() {
                                     </button>
                                     <button
                                         onClick={() =>
-                                            handleDeleteCategory(category.id || category.categoryId)
+                                            handleDeleteCategory(category.id)
                                         }
                                         className="p-2 hover:bg-gray-100 rounded-lg"
                                     >
@@ -148,24 +151,30 @@ function CategoryModal({ category, onClose, onSuccess }) {
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async () => {
+        if (!name.trim()) {
+            alert("Vui lòng nhập tên category");
+            return;
+        }
+
         try {
             setLoading(true);
+            const categoryData = {
+                name: name.trim(),
+                description: description.trim(),
+                color: color,
+            };
+
             if (category) {
-                await adminApi.updateCategory(category.id || category.categoryId, {
-                    name,
-                    description,
-                    color,
-                });
+                await adminApi.updateCategory(category.id, categoryData);
+                alert("Cập nhật category thành công");
             } else {
-                await adminApi.createCategory({ name, description, color });
+                await adminApi.createCategory(categoryData);
+                alert("Thêm category thành công");
             }
-            alert(
-                category ? "Cập nhật category thành công" : "Thêm category thành công"
-            );
             onClose();
             onSuccess();
         } catch (err) {
-            alert("Lỗi: " + err.message);
+            alert("Lỗi: " + (err.response?.data?.message || err.message));
         } finally {
             setLoading(false);
         }

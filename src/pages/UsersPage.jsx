@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Trash2, Plus, Send } from "lucide-react";
 import Layout from "../components/Layout";
 import { adminApi } from "../services/api";
+import { mockUsers } from "../services/mockData";
 
 export default function UsersPage() {
     const [users, setUsers] = useState([]);
@@ -18,10 +19,11 @@ export default function UsersPage() {
     const fetchUsers = async () => {
         try {
             setLoading(true);
-            const response = await adminApi.getAllUsers();
-            setUsers(response.data.data || []);
+            const response = await adminApi.getAllUsers(0, 50);
+            setUsers(response.data.data.content || []);
         } catch (err) {
-            setError(err.message);
+            setError("Không thể tải danh sách user");
+            console.error("Error fetching users:", err);
         } finally {
             setLoading(false);
         }
@@ -32,9 +34,10 @@ export default function UsersPage() {
 
         try {
             await adminApi.deleteUser(userId);
-            setUsers(users.filter((u) => u.userId !== userId));
+            setUsers(users.filter((u) => u.id !== userId));
+            alert("Xóa user thành công");
         } catch (err) {
-            alert("Lỗi: " + err.message);
+            alert("Lỗi: " + (err.response?.data?.message || err.message));
         }
     };
 
@@ -97,7 +100,7 @@ export default function UsersPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {users.map((user) => (
-                                    <tr key={user.userId} className="hover:bg-gray-50">
+                                    <tr key={user.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
@@ -117,7 +120,7 @@ export default function UsersPage() {
                                         </td>
                                         <td className="px-6 py-4 text-gray-700">{user.email}</td>
                                         <td className="px-6 py-4">
-                                            <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                                            <span className="inline-block bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-medium">
                                                 {user.trustScore || 0}
                                             </span>
                                         </td>
@@ -125,13 +128,13 @@ export default function UsersPage() {
                                             <div className="flex items-center gap-2">
                                                 <button
                                                     onClick={() => openModal(user, "points")}
-                                                    className="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 text-sm font-medium"
+                                                    className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 text-sm font-medium"
                                                 >
                                                     Thêm điểm
                                                 </button>
                                                 <button
                                                     onClick={() => openModal(user, "notification")}
-                                                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                                                    className="px-3 py-1 bg-cyan-100 text-cyan-700 rounded hover:bg-cyan-200"
                                                 >
                                                     <Send size={16} />
                                                 </button>
@@ -173,12 +176,12 @@ function Modal({ type, user, onClose, onSuccess }) {
     const handleAddPoints = async () => {
         try {
             setLoading(true);
-            await adminApi.addPoints(user.userId, parseInt(pointsValue), "Admin reward");
+            await adminApi.addPoints(user.id, parseInt(pointsValue), "Admin added points");
             alert("Thêm điểm thành công");
             onClose();
             onSuccess();
         } catch (err) {
-            alert("Lỗi: " + err.message);
+            alert("Lỗi: " + (err.response?.data?.message || err.message));
         } finally {
             setLoading(false);
         }
@@ -187,12 +190,12 @@ function Modal({ type, user, onClose, onSuccess }) {
     const handleSendNotification = async () => {
         try {
             setLoading(true);
-            await adminApi.sendNotification(user.userId, title, message);
+            await adminApi.sendNotification(user.id, title, message);
             alert("Gửi thông báo thành công");
             onClose();
             onSuccess();
         } catch (err) {
-            alert("Lỗi: " + err.message);
+            alert("Lỗi: " + (err.response?.data?.message || err.message));
         } finally {
             setLoading(false);
         }

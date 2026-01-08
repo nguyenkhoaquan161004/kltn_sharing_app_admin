@@ -7,7 +7,7 @@ export default defineConfig({
         port: 5173,
         proxy: {
             "/api": {
-                target: "https://shareo.studio",
+                target: "http://shareo.studio",
                 changeOrigin: true,
                 secure: false,
                 rewrite: (path) => path,

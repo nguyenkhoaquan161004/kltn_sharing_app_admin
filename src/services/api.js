@@ -1,8 +1,7 @@
 import axios from "axios";
 
-// Dev: use relative path (proxied), Production: use absolute URL
-const API_BASE_URL = import.meta.env.VITE_API_URL ||
-    (import.meta.env.MODE === "development" ? "" : "https://shareo.studio");
+// API URL
+const API_BASE_URL = "https://api.shareo.studio";
 
 console.log("API_BASE_URL:", API_BASE_URL, "MODE:", import.meta.env.MODE);
 
@@ -78,6 +77,22 @@ export const adminApi = {
         apiClient.put(`/api/v2/admin/gamification/badges/${badgeId}`, data),
     deleteBadge: (badgeId) =>
         apiClient.delete(`/api/v2/admin/gamification/badges/${badgeId}`),
+
+    // Transactions
+    getAllTransactions: (page = 0, size = 50) =>
+        apiClient.get("/api/v2/transactions", { params: { page, size } }),
+    getTransactionById: (transactionId) =>
+        apiClient.get(`/api/v2/transactions/${transactionId}`),
+
+    // Reports (Optional - endpoints may not exist)
+    getAllReports: () =>
+        apiClient.get("/api/v2/admin/reports").catch(() => ({
+            data: { data: [] },
+        })),
+    approveReport: (reportId) =>
+        apiClient.put(`/api/v2/admin/reports/${reportId}/approve`),
+    rejectReport: (reportId) =>
+        apiClient.put(`/api/v2/admin/reports/${reportId}/reject`),
 };
 
 export default apiClient;

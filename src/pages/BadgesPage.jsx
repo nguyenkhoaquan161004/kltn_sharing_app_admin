@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Trash2, Edit, Plus, Star } from "lucide-react";
 import Layout from "../components/Layout";
 import { adminApi } from "../services/api";
+import { mockBadges } from "../services/mockData";
 
 export default function BadgesPage() {
     const [badges, setBadges] = useState([]);
@@ -20,7 +21,8 @@ export default function BadgesPage() {
             const response = await adminApi.getAllBadges();
             setBadges(response.data.data || []);
         } catch (err) {
-            setError(err.message);
+            setError("Không thể tải danh sách danh hiệu");
+            console.error("Error fetching badges:", err);
         } finally {
             setLoading(false);
         }
@@ -31,9 +33,10 @@ export default function BadgesPage() {
 
         try {
             await adminApi.deleteBadge(badgeId);
-            setBadges(badges.filter((b) => (b.id || b.badgeId) !== badgeId));
+            setBadges(badges.filter((b) => b.id !== badgeId));
+            alert("Xóa danh hiệu thành công");
         } catch (err) {
-            alert("Lỗi: " + err.message);
+            alert("Lỗi: " + (err.response?.data?.message || err.message));
         }
     };
 
@@ -97,7 +100,7 @@ export default function BadgesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {badges.map((badge) => (
                         <div
-                            key={badge.id || badge.badgeId}
+                            key={badge.id}
                             className="card p-6 hover:shadow-lg transition-shadow"
                         >
                             <div className="flex items-start justify-between mb-4">
@@ -111,7 +114,7 @@ export default function BadgesPage() {
                                     </button>
                                     <button
                                         onClick={() =>
-                                            handleDeleteBadge(badge.id || badge.badgeId)
+                                            handleDeleteBadge(badge.id)
                                         }
                                         className="p-2 hover:bg-gray-100 rounded-lg"
                                     >
@@ -166,30 +169,31 @@ function BadgeModal({ badge, onClose, onSuccess }) {
     const rarities = ["COMMON", "RARE", "EPIC", "LEGENDARY"];
 
     const handleSubmit = async () => {
+        if (!name.trim()) {
+            alert("Vui lòng nhập tên danh hiệu");
+            return;
+        }
+
         try {
             setLoading(true);
+            const badgeData = {
+                name: name.trim(),
+                description: description.trim(),
+                pointsRequired: parseInt(pointsRequired) || 0,
+                rarity: rarity,
+            };
+
             if (badge) {
-                await adminApi.updateBadge(badge.id || badge.badgeId, {
-                    name,
-                    description,
-                    pointsRequired: parseInt(pointsRequired),
-                    rarity,
-                });
+                await adminApi.updateBadge(badge.id, badgeData);
+                alert("Cập nhật danh hiệu thành công");
             } else {
-                await adminApi.createBadge({
-                    name,
-                    description,
-                    pointsRequired: parseInt(pointsRequired),
-                    rarity,
-                });
+                await adminApi.createBadge(badgeData);
+                alert("Thêm danh hiệu thành công");
             }
-            alert(
-                badge ? "Cập nhật danh hiệu thành công" : "Thêm danh hiệu thành công"
-            );
             onClose();
             onSuccess();
         } catch (err) {
-            alert("Lỗi: " + err.message);
+            alert("Lỗi: " + (err.response?.data?.message || err.message));
         } finally {
             setLoading(false);
         }

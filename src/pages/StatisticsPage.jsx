@@ -1,38 +1,94 @@
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
+import { adminApi } from "../services/api";
 
 export default function StatisticsPage() {
-    const transactionData = [
-        { date: "12/20", transactions: 45, successful: 43, failed: 2 },
-        { date: "12/21", transactions: 52, successful: 50, failed: 2 },
-        { date: "12/22", transactions: 48, successful: 46, failed: 2 },
-        { date: "12/23", transactions: 61, successful: 58, failed: 3 },
-        { date: "12/24", transactions: 55, successful: 53, failed: 2 },
-        { date: "12/25", transactions: 67, successful: 65, failed: 2 },
-        { date: "12/26", transactions: 45, successful: 43, failed: 2 },
-    ];
+    const [stats, setStats] = useState([
+        { label: "Tổng giao dịch", value: "0", color: "bg-blue-500", loading: true },
+        { label: "Giao dịch thành công", value: "0", color: "bg-green-500", loading: true },
+        { label: "Giao dịch thất bại", value: "0", color: "bg-red-500", loading: true },
+        { label: "Tỷ lệ thành công", value: "0%", color: "bg-purple-500", loading: true },
+    ]);
+    const [transactionData, setTransactionData] = useState([]);
+    const [successRateData, setSuccessRateData] = useState([
+        { name: "Thành công", value: 0, fill: "#10b981" },
+        { name: "Thất bại", value: 0, fill: "#ef4444" },
+    ]);
+    const [revenueData, setRevenueData] = useState([]);
+    const [recentTransactions, setRecentTransactions] = useState([]);
 
-    const revenueData = [
-        { date: "12/20", revenue: 1850000 },
-        { date: "12/21", revenue: 2100000 },
-        { date: "12/22", revenue: 1950000 },
-        { date: "12/23", revenue: 2450000 },
-        { date: "12/24", revenue: 2200000 },
-        { date: "12/25", revenue: 2700000 },
-        { date: "12/26", revenue: 1800000 },
-    ];
+    useEffect(() => {
+        fetchStatistics();
+    }, []);
 
-    const successRateData = [
-        { name: "Thành công", value: 1850, fill: "#10b981" },
-        { name: "Thất bại", value: 45, fill: "#ef4444" },
-    ];
+    const fetchStatistics = async () => {
+        try {
+            // Fetch all transactions
+            const txnResponse = await adminApi.getAllTransactions(0, 500);
+            const transactions = txnResponse.data.data.content || [];
 
-    const stats = [
-        { label: "Tổng giao dịch", value: "373", color: "bg-blue-500" },
-        { label: "Giao dịch thành công", value: "358", color: "bg-green-500" },
-        { label: "Giao dịch thất bại", value: "15", color: "bg-red-500" },
-        { label: "Tỷ lệ thành công", value: "95.9%", color: "bg-purple-500" },
-    ];
+            // Calculate stats
+            const totalTransactions = transactions.length;
+            const successfulTransactions = transactions.filter(t => t.status === "COMPLETED").length;
+            const failedTransactions = transactions.filter(t => t.status === "REJECTED" || t.status === "CANCELLED").length;
+            const successRate = totalTransactions > 0 ? ((successfulTransactions / totalTransactions) * 100).toFixed(1) : 0;
+
+            setStats([
+                { label: "Tổng giao dịch", value: totalTransactions.toString(), color: "bg-blue-500", loading: false },
+                { label: "Giao dịch thành công", value: successfulTransactions.toString(), color: "bg-green-500", loading: false },
+                { label: "Giao dịch thất bại", value: failedTransactions.toString(), color: "bg-red-500", loading: false },
+                { label: "Tỷ lệ thành công", value: successRate + "%", color: "bg-purple-500", loading: false },
+            ]);
+
+            setSuccessRateData([
+                { name: "Thành công", value: successfulTransactions, fill: "#10b981" },
+                { name: "Thất bại", value: failedTransactions, fill: "#ef4444" },
+            ]);
+
+            // Process transaction data by date
+            const txnByDate = {};
+            transactions.forEach(t => {
+                const date = new Date(t.createdAt).toLocaleDateString('vi-VN');
+                if (!txnByDate[date]) {
+                    txnByDate[date] = { date, successful: 0, failed: 0 };
+                }
+                if (t.status === "COMPLETED") {
+                    txnByDate[date].successful++;
+                } else if (t.status === "REJECTED" || t.status === "CANCELLED") {
+                    txnByDate[date].failed++;
+                }
+            });
+
+            const chartData = Object.values(txnByDate).slice(-7);
+            setTransactionData(chartData);
+
+            // Process revenue data by date
+            const revByDate = {};
+            transactions.forEach(t => {
+                if (t.status === "COMPLETED") {
+                    const date = new Date(t.createdAt).toLocaleDateString('vi-VN');
+                    if (!revByDate[date]) {
+                        revByDate[date] = { date, revenue: 0 };
+                    }
+                    revByDate[date].revenue += (t.amount || 0);
+                }
+            });
+
+            const revData = Object.values(revByDate).slice(-7);
+            setRevenueData(revData);
+
+            // Get recent transactions
+            setRecentTransactions(transactions.slice(0, 5).map(t => ({
+                id: t.id?.substring(0, 8) || "N/A",
+                amount: `₫${(t.amount || 0).toLocaleString('vi-VN')}`,
+                status: t.status === "COMPLETED" ? "success" : t.status === "PENDING" ? "pending" : "failed",
+                time: new Date(t.createdAt).toLocaleTimeString('vi-VN'),
+            })));
+        } catch (error) {
+            console.error("Error fetching statistics:", error);
+        }
+    };
 
     return (
         <Layout>
@@ -51,7 +107,11 @@ export default function StatisticsPage() {
                                 <div>
                                     <p className="text-gray-500 text-sm">{stat.label}</p>
                                     <p className="text-3xl font-bold text-gray-900 mt-2">
-                                        {stat.value}
+                                        {stat.loading ? (
+                                            <span className="animate-pulse">...</span>
+                                        ) : (
+                                            stat.value
+                                        )}
                                     </p>
                                 </div>
                                 <div className={`${stat.color} w-12 h-12 rounded-lg`}></div>
@@ -154,13 +214,7 @@ export default function StatisticsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                                {[
-                                    { id: "TXN001", amount: "₫45,000", status: "success", time: "14:30" },
-                                    { id: "TXN002", amount: "₫32,500", status: "success", time: "14:15" },
-                                    { id: "TXN003", amount: "₫58,000", status: "success", time: "13:45" },
-                                    { id: "TXN004", amount: "₫1,200", status: "failed", time: "13:20" },
-                                    { id: "TXN005", amount: "₫41,000", status: "success", time: "12:50" },
-                                ].map((txn) => (
+                                {recentTransactions.map((txn) => (
                                     <tr key={txn.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 text-gray-900 font-mono">{txn.id}</td>
                                         <td className="px-6 py-4 text-gray-900 font-semibold">
@@ -170,10 +224,12 @@ export default function StatisticsPage() {
                                             <span
                                                 className={`px-3 py-1 rounded-full text-sm font-medium ${txn.status === "success"
                                                         ? "bg-green-100 text-green-700"
-                                                        : "bg-red-100 text-red-700"
+                                                        : txn.status === "pending"
+                                                            ? "bg-yellow-100 text-yellow-700"
+                                                            : "bg-red-100 text-red-700"
                                                     }`}
                                             >
-                                                {txn.status === "success" ? "Thành công" : "Thất bại"}
+                                                {txn.status === "success" ? "Thành công" : txn.status === "pending" ? "Đang xử lý" : "Thất bại"}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-gray-600">{txn.time}</td>

@@ -9,8 +9,8 @@ export default function LoginPage() {
     const setToken = useAuthStore((state) => state.setToken);
     const setUser = useAuthStore((state) => state.setUser);
 
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const [email, setEmail] = useState("sharioforever@gmail.com");
+    const [password, setPassword] = useState("12341234");
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -22,26 +22,46 @@ export default function LoginPage() {
 
         try {
             const response = await adminApi.login(email, password);
+            
+            // Extract tokens and user data from response
             const { data } = response.data;
-
-            setToken(data.access_token);
-            setUser({ email });
-            navigate("/dashboard");
+            
+            if (data.access_token) {
+                // Store tokens in localStorage
+                localStorage.setItem("admin_access_token", data.access_token);
+                if (data.refresh_token) {
+                    localStorage.setItem("admin_refresh_token", data.refresh_token);
+                }
+                
+                // Store user info in auth store
+                setToken(data.access_token);
+                setUser({
+                    email: data.user?.email || email,
+                    id: data.user?.id,
+                    username: data.user?.username,
+                });
+                
+                navigate("/dashboard");
+            } else {
+                setError("Không nhận được token từ server");
+            }
         } catch (err) {
-            setError(err.response?.data?.message || "Đăng nhập thất bại");
+            const errorMessage = err.response?.data?.message || "Đăng nhập thất bại";
+            setError(errorMessage);
+            console.error("Login error:", err);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 {/* Card */}
                 <div className="bg-white rounded-xl shadow-2xl p-8">
                     {/* Header */}
                     <div className="text-center mb-8">
-                        <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-4">
                             <span className="text-3xl font-bold text-white">SA</span>
                         </div>
                         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
@@ -107,12 +127,7 @@ export default function LoginPage() {
                         </button>
                     </form>
 
-                    {/* Demo Info */}
-                    <div className="mt-6 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
-                        <p className="font-medium">Tài khoản demo:</p>
-                        <p>Email: admin@shario.com</p>
-                        <p>Password: (Mật khẩu của admin)</p>
-                    </div>
+
                 </div>
             </div>
         </div>

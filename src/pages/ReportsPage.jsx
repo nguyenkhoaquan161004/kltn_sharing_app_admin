@@ -1,36 +1,64 @@
 import { Flag, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
+import { adminApi } from "../services/api";
 
 export default function ReportsPage() {
-    const reports = [
-        {
-            id: "RPT001",
-            type: "Spam",
-            reason: "Nội dung spam",
-            reporter: "user123",
-            target: "user456",
-            status: "pending",
-            date: "12/26",
-        },
-        {
-            id: "RPT002",
-            type: "Inappropriate",
-            reason: "Nội dung không phù hợp",
-            reporter: "user789",
-            target: "user101",
-            status: "resolved",
-            date: "12/25",
-        },
-        {
-            id: "RPT003",
-            type: "Scam",
-            reason: "Lừa đảo",
-            reporter: "user202",
-            target: "user303",
-            status: "pending",
-            date: "12/24",
-        },
-    ];
+    const [reports, setReports] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        fetchReports();
+    }, []);
+
+    const fetchReports = async () => {
+        try {
+            setLoading(true);
+            // Try to fetch reports if endpoint exists, otherwise use mock data
+            try {
+                const response = await adminApi.getAllReports();
+                setReports(response.data.data || []);
+            } catch {
+                // If endpoint doesn't exist, use mock data
+                const mockReports = [
+                    {
+                        id: "RPT001",
+                        type: "Spam",
+                        reason: "Nội dung spam",
+                        reporter: "user123",
+                        target: "user456",
+                        status: "pending",
+                        date: "12/26",
+                    },
+                    {
+                        id: "RPT002",
+                        type: "Inappropriate",
+                        reason: "Nội dung không phù hợp",
+                        reporter: "user789",
+                        target: "user101",
+                        status: "resolved",
+                        date: "12/25",
+                    },
+                    {
+                        id: "RPT003",
+                        type: "Scam",
+                        reason: "Lừa đảo",
+                        reporter: "user202",
+                        target: "user303",
+                        status: "pending",
+                        date: "12/24",
+                    },
+                ];
+                setReports(mockReports);
+            }
+        } catch (err) {
+            setError("Không thể tải danh sách reports");
+            console.error("Error fetching reports:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const getTypeColor = (type) => {
         const colors = {
@@ -41,13 +69,45 @@ export default function ReportsPage() {
         return colors[type] || "bg-gray-100 text-gray-700";
     };
 
-    const handleApprove = (reportId) => {
-        alert(`Report ${reportId} đã được phê duyệt`);
+    const handleApprove = async (reportId) => {
+        try {
+            // Try to call API if it exists
+            if (adminApi.approveReport) {
+                await adminApi.approveReport(reportId);
+            }
+            setReports(
+                reports.map((r) =>
+                    r.id === reportId ? { ...r, status: "resolved" } : r
+                )
+            );
+            alert("Report đã được phê duyệt");
+        } catch (err) {
+            alert("Lỗi: " + (err.response?.data?.message || err.message));
+        }
     };
 
-    const handleReject = (reportId) => {
-        alert(`Report ${reportId} đã bị từ chối`);
+    const handleReject = async (reportId) => {
+        try {
+            // Try to call API if it exists
+            if (adminApi.rejectReport) {
+                await adminApi.rejectReport(reportId);
+            }
+            setReports(reports.filter((r) => r.id !== reportId));
+            alert("Report đã bị từ chối");
+        } catch (err) {
+            alert("Lỗi: " + (err.response?.data?.message || err.message));
+        }
     };
+
+    if (loading) {
+        return (
+            <Layout>
+                <div className="flex justify-center items-center h-96">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+            </Layout>
+        );
+    }
 
     return (
         <Layout>
