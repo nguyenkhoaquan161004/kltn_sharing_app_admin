@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Trash2, Edit, Plus, Star } from "lucide-react";
+import { Trash2, Edit, Plus, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import Layout from "../components/Layout";
 import { adminApi } from "../services/api";
 import { mockBadges } from "../services/mockData";
+
+const ITEMS_PER_PAGE = 9;
 
 export default function BadgesPage() {
     const [badges, setBadges] = useState([]);
@@ -10,6 +12,7 @@ export default function BadgesPage() {
     const [error, setError] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [editingBadge, setEditingBadge] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         fetchBadges();
@@ -19,7 +22,10 @@ export default function BadgesPage() {
         try {
             setLoading(true);
             const response = await adminApi.getAllBadges();
-            setBadges(response.data.data || []);
+            // API returns array directly in response.data.data
+            const badgesData = Array.isArray(response.data.data) ? response.data.data : response.data.data.data || [];
+            setBadges(badgesData);
+            setCurrentPage(1);
         } catch (err) {
             setError("Không thể tải danh sách danh hiệu");
             console.error("Error fetching badges:", err);
@@ -55,6 +61,26 @@ export default function BadgesPage() {
         return colors[rarity] || colors.COMMON;
     };
 
+    const getIconEmoji = (iconName) => {
+        const iconMap = {
+            "badge-newcomer": "🎉",
+            "badge-first-share": "🎁",
+            "badge-first-receive": "📦",
+            "badge-bronze": "🥉",
+            "badge-silver": "🥈",
+            "badge-gold": "🥇",
+            "badge-platinum": "💎",
+            default: "⭐",
+        };
+        return iconMap[iconName?.toLowerCase()] || iconMap.default;
+    };
+
+    // Pagination logic
+    const totalPages = Math.ceil(badges.length / ITEMS_PER_PAGE);
+    const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIdx = startIdx + ITEMS_PER_PAGE;
+    const paginatedBadges = badges.slice(startIdx, endIdx);
+
     if (loading) {
         return (
             <Layout>
@@ -75,7 +101,7 @@ export default function BadgesPage() {
                             Quản lý Danh hiệu
                         </h1>
                         <p className="text-gray-500 mt-2">
-                            Tổng cộng: {badges.length} danh hiệu
+                            Tổng cộng: {badges.length} danh hiệu - Trang {currentPage}/{totalPages || 1}
                         </p>
                     </div>
                     <button
@@ -97,14 +123,16 @@ export default function BadgesPage() {
                 )}
 
                 {/* Badges Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {badges.map((badge) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    {paginatedBadges.map((badge) => (
                         <div
                             key={badge.id}
                             className="card p-6 hover:shadow-lg transition-shadow"
                         >
                             <div className="flex items-start justify-between mb-4">
-                                <Star size={32} className="text-yellow-500 fill-yellow-500" />
+                                <div className="text-4xl">
+                                    {getIconEmoji(badge.icon)}
+                                </div>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => openEditModal(badge)}
@@ -143,6 +171,40 @@ export default function BadgesPage() {
                         </div>
                     ))}
                 </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-8">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        >
+                            <ChevronLeft size={18} />
+                            Trước
+                        </button>
+                        {[...Array(totalPages)].map((_, i) => (
+                            <button
+                                key={i + 1}
+                                onClick={() => setCurrentPage(i + 1)}
+                                className={`px-3 py-2 rounded-lg ${currentPage === i + 1
+                                    ? "bg-blue-600 text-white"
+                                    : "border border-gray-300 hover:bg-gray-50"
+                                    }`}
+                            >
+                                {i + 1}
+                            </button>
+                        ))}
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        >
+                            Sau
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Modal */}

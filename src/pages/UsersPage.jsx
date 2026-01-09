@@ -1,26 +1,34 @@
 import { useEffect, useState } from "react";
-import { Trash2, Plus, Send } from "lucide-react";
+import { Trash2, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import Layout from "../components/Layout";
 import { adminApi } from "../services/api";
 import { mockUsers } from "../services/mockData";
+
+const PAGE_SIZE = 20;
 
 export default function UsersPage() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
     const [showModal, setShowModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [modalType, setModalType] = useState(""); // "points" or "notification"
+    const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
-        fetchUsers();
-    }, []);
+        fetchUsers(currentPage);
+    }, [currentPage]);
 
-    const fetchUsers = async () => {
+    const fetchUsers = async (page) => {
         try {
             setLoading(true);
-            const response = await adminApi.getAllUsers(0, 50);
-            setUsers(response.data.data.content || []);
+            const response = await adminApi.getAllUsers(page, PAGE_SIZE);
+            setUsers(response.data.data.data || []);
+            setTotalPages(response.data.data.totalPages || 1);
+            setTotalItems(response.data.data.totalItems || 0);
         } catch (err) {
             setError("Không thể tải danh sách user");
             console.error("Error fetching users:", err);
@@ -34,7 +42,7 @@ export default function UsersPage() {
 
         try {
             await adminApi.deleteUser(userId);
-            setUsers(users.filter((u) => u.id !== userId));
+            setUsers(users.filter((u) => u.userId !== userId));
             alert("Xóa user thành công");
         } catch (err) {
             alert("Lỗi: " + (err.response?.data?.message || err.message));
@@ -46,6 +54,16 @@ export default function UsersPage() {
         setModalType(type);
         setShowModal(true);
     };
+
+    // Filter users based on search query
+    const filteredUsers = users.filter(user => {
+        const query = searchQuery.toLowerCase();
+        return (
+            (user.firstName && user.firstName.toLowerCase().includes(query)) ||
+            (user.username && user.username.toLowerCase().includes(query)) ||
+            (user.email && user.email.toLowerCase().includes(query))
+        );
+    });
 
     if (loading) {
         return (
@@ -61,15 +79,23 @@ export default function UsersPage() {
         <Layout>
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="flex justify-between items-center mb-8">
-                    <div>
-                        <h1 className="text-4xl font-bold text-gray-900">Quản lý User</h1>
-                        <p className="text-gray-500 mt-2">Tổng cộng: {users.length} user</p>
+                <div className="mb-8">
+                    <h1 className="text-4xl font-bold text-gray-900">Quản lý User</h1>
+                    <p className="text-gray-500 mt-2">Tổng cộng: {totalItems} user - Trang {currentPage}/{totalPages}</p>
+                </div>
+
+                {/* Search Bar */}
+                <div className="mb-6">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm user theo tên, username, hoặc email..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
                     </div>
-                    <button className="btn-primary flex items-center gap-2">
-                        <Plus size={20} />
-                        Thêm User
-                    </button>
                 </div>
 
                 {error && (
@@ -99,14 +125,23 @@ export default function UsersPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                                {users.map((user) => (
-                                    <tr key={user.id} className="hover:bg-gray-50">
+                                {filteredUsers.length > 0 ? (
+                                    filteredUsers.map((user) => (
+                                    <tr key={user.userId} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                                                    <span className="text-sm font-semibold text-gray-700">
-                                                        {(user.firstName || user.username || "U")[0]}
-                                                    </span>
+                                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                                                    {user.profilePicture ? (
+                                                        <img
+                                                            src={user.profilePicture}
+                                                            alt={user.firstName || user.username}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-sm font-semibold text-gray-700">
+                                                            {(user.firstName || user.username || "U")[0].toUpperCase()}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <p className="font-medium text-gray-900">
@@ -133,12 +168,6 @@ export default function UsersPage() {
                                                     Thêm điểm
                                                 </button>
                                                 <button
-                                                    onClick={() => openModal(user, "notification")}
-                                                    className="px-3 py-1 bg-cyan-100 text-cyan-700 rounded hover:bg-cyan-200"
-                                                >
-                                                    <Send size={16} />
-                                                </button>
-                                                <button
                                                     onClick={() => handleDeleteUser(user.userId)}
                                                     className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
                                                 >
@@ -147,22 +176,59 @@ export default function UsersPage() {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                                            {searchQuery ? "Không tìm thấy user" : "Không có user"}
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
                 </div>
-            </div>
 
-            {/* Modals */}
-            {showModal && selectedUser && (
-                <Modal
-                    type={modalType}
-                    user={selectedUser}
-                    onClose={() => setShowModal(false)}
-                    onSuccess={fetchUsers}
-                />
-            )}
+                {/* Pagination Controls */}
+                <div className="mt-8 flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                        Hiển thị {users.length > 0 ? (currentPage - 1) * PAGE_SIZE + 1 : 0} - {Math.min(currentPage * PAGE_SIZE, totalItems)} trong {totalItems} user
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1 || loading}
+                            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        >
+                            <ChevronLeft size={18} />
+                            Trang trước
+                        </button>
+                        <div className="flex items-center gap-1">
+                            <span className="px-3 py-2 text-sm font-medium text-gray-700">
+                                Trang {currentPage}/{totalPages}
+                            </span>
+                        </div>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages || loading}
+                            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        >
+                            Trang sau
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Modals */}
+                {showModal && selectedUser && (
+                    <Modal
+                        type={modalType}
+                        user={selectedUser}
+                        onClose={() => setShowModal(false)}
+                        onSuccess={fetchUsers}
+                    />
+                )}
+            </div>
         </Layout>
     );
 }
@@ -170,13 +236,28 @@ export default function UsersPage() {
 function Modal({ type, user, onClose, onSuccess }) {
     const [loading, setLoading] = useState(false);
     const [pointsValue, setPointsValue] = useState("");
+    const [pointsReason, setPointsReason] = useState("");
+    const [notificationTitle, setNotificationTitle] = useState("");
+    const [notificationMessage, setNotificationMessage] = useState("");
     const [title, setTitle] = useState("");
     const [message, setMessage] = useState("");
 
     const handleAddPoints = async () => {
         try {
             setLoading(true);
-            await adminApi.addPoints(user.id, parseInt(pointsValue), "Admin added points");
+            const reason = pointsReason || "Hoạt động trên nền tảng";
+
+            // Add points
+            await adminApi.addPoints(user.userId, parseInt(pointsValue), reason);
+
+            // Always send notification
+            const notificationMsg = `Bạn được cộng ${pointsValue} điểu vì lý do: ${reason}`;
+            await adminApi.sendNotification(
+                user.userId,
+                "Thông báo từ quản trị viên",
+                notificationMsg
+            );
+
             alert("Thêm điểm thành công");
             onClose();
             onSuccess();
@@ -190,7 +271,7 @@ function Modal({ type, user, onClose, onSuccess }) {
     const handleSendNotification = async () => {
         try {
             setLoading(true);
-            await adminApi.sendNotification(user.id, title, message);
+            await adminApi.sendNotification(user.userId, title, message);
             alert("Gửi thông báo thành công");
             onClose();
             onSuccess();
@@ -222,13 +303,54 @@ function Modal({ type, user, onClose, onSuccess }) {
                                 placeholder="Nhập số điểm"
                             />
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Lý do
+                            </label>
+                            <textarea
+                                value={pointsReason}
+                                onChange={(e) => setPointsReason(e.target.value)}
+                                className="input"
+                                rows="2"
+                                placeholder="Nhập lý do thêm điểm (tùy chọn)"
+                            />
+                        </div>
+                        <div className="border-t pt-4">
+                            <p className="text-sm font-medium text-gray-700 mb-3">Thông báo cho user (tùy chọn)</p>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Tiêu đề thông báo
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={notificationTitle}
+                                        onChange={(e) => setNotificationTitle(e.target.value)}
+                                        className="input"
+                                        placeholder="VD: Bạn nhận được điểm mới"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Nội dung thông báo
+                                    </label>
+                                    <textarea
+                                        value={notificationMessage}
+                                        onChange={(e) => setNotificationMessage(e.target.value)}
+                                        className="input"
+                                        rows="2"
+                                        placeholder="Nhập nội dung thông báo"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                         <div className="flex gap-3">
                             <button onClick={onClose} className="flex-1 btn-secondary">
                                 Hủy
                             </button>
                             <button
                                 onClick={handleAddPoints}
-                                disabled={loading}
+                                disabled={loading || !pointsValue}
                                 className="flex-1 btn-primary"
                             >
                                 {loading ? "Đang xử lý..." : "Thêm"}

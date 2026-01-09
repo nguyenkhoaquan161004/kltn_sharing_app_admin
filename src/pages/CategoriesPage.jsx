@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Trash2, Edit, Plus } from "lucide-react";
+import { Trash2, Edit, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import Layout from "../components/Layout";
 import { adminApi } from "../services/api";
 import { mockCategories } from "../services/mockData";
+
+const ITEMS_PER_PAGE = 9;
 
 export default function CategoriesPage() {
     const [categories, setCategories] = useState([]);
@@ -10,6 +12,7 @@ export default function CategoriesPage() {
     const [error, setError] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [editingCategory, setEditingCategory] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         fetchCategories();
@@ -19,7 +22,8 @@ export default function CategoriesPage() {
         try {
             setLoading(true);
             const response = await adminApi.getAllCategories();
-            setCategories(response.data.data || []);
+            setCategories(response.data.data.data || []);
+            setCurrentPage(1);
         } catch (err) {
             setError("Không thể tải danh sách category");
             console.error("Error fetching categories:", err);
@@ -47,6 +51,31 @@ export default function CategoriesPage() {
         setShowModal(true);
     };
 
+    // Pagination logic
+    const totalPages = Math.ceil(categories.length / ITEMS_PER_PAGE);
+    const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIdx = startIdx + ITEMS_PER_PAGE;
+    const paginatedCategories = categories.slice(startIdx, endIdx);
+
+    const getIconEmoji = (iconName) => {
+        const iconMap = {
+            furniture: "🛋️",
+            electronics: "📱",
+            clothing: "👕",
+            books: "📚",
+            sports: "⚽",
+            toys: "🧸",
+            kitchen: "🍳",
+            home: "🏠",
+            garden: "🌿",
+            pets: "🐕",
+            tools: "🔧",
+            music: "🎵",
+            default: "📁",
+        };
+        return iconMap[iconName?.toLowerCase()] || iconMap.default;
+    };
+
     if (loading) {
         return (
             <Layout>
@@ -67,7 +96,7 @@ export default function CategoriesPage() {
                             Quản lý Category
                         </h1>
                         <p className="text-gray-500 mt-2">
-                            Tổng cộng: {categories.length} category
+                            Tổng cộng: {categories.length} category - Trang {currentPage}/{totalPages || 1}
                         </p>
                     </div>
                     <button
@@ -89,8 +118,8 @@ export default function CategoriesPage() {
                 )}
 
                 {/* Categories Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {categories.map((category) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    {paginatedCategories.map((category) => (
                         <div
                             key={category.id}
                             className="card p-6 hover:shadow-lg transition-shadow"
@@ -102,7 +131,7 @@ export default function CategoriesPage() {
                                         backgroundColor: category.color || "#2563eb",
                                     }}
                                 >
-                                    📁
+                                    {getIconEmoji(category.icon)}
                                 </div>
                                 <div className="flex gap-2">
                                     <button
@@ -130,16 +159,50 @@ export default function CategoriesPage() {
                         </div>
                     ))}
                 </div>
-            </div>
 
-            {/* Modal */}
-            {showModal && (
-                <CategoryModal
-                    category={editingCategory}
-                    onClose={() => setShowModal(false)}
-                    onSuccess={fetchCategories}
-                />
-            )}
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-8">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        >
+                            <ChevronLeft size={18} />
+                            Trước
+                        </button>
+                        {[...Array(totalPages)].map((_, i) => (
+                            <button
+                                key={i + 1}
+                                onClick={() => setCurrentPage(i + 1)}
+                                className={`px-3 py-2 rounded-lg ${currentPage === i + 1
+                                    ? "bg-blue-600 text-white"
+                                    : "border border-gray-300 hover:bg-gray-50"
+                                    }`}
+                            >
+                                {i + 1}
+                            </button>
+                        ))}
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        >
+                            Sau
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
+                )}
+
+                {/* Modal */}
+                {showModal && (
+                    <CategoryModal
+                        category={editingCategory}
+                        onClose={() => setShowModal(false)}
+                        onSuccess={fetchCategories}
+                    />
+                )}
+            </div>
         </Layout>
     );
 }

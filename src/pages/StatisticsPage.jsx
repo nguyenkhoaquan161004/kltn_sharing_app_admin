@@ -24,9 +24,16 @@ export default function StatisticsPage() {
 
     const fetchStatistics = async () => {
         try {
-            // Fetch all transactions
-            const txnResponse = await adminApi.getAllTransactions(0, 500);
-            const transactions = txnResponse.data.data.content || [];
+            // Fetch transactions as sharer (since there's no global admin endpoint)
+            let transactions = [];
+            try {
+                const txnResponse = await adminApi.getTransactionsAsSharer(1, 500);
+                transactions = txnResponse.data.data.data || [];
+            } catch (err) {
+                console.warn("Could not fetch transactions from API, using empty data:", err);
+                // Fallback to empty data if endpoint fails
+                transactions = [];
+            }
 
             // Calculate stats
             const totalTransactions = transactions.length;
@@ -223,10 +230,10 @@ export default function StatisticsPage() {
                                         <td className="px-6 py-4">
                                             <span
                                                 className={`px-3 py-1 rounded-full text-sm font-medium ${txn.status === "success"
-                                                        ? "bg-green-100 text-green-700"
-                                                        : txn.status === "pending"
-                                                            ? "bg-yellow-100 text-yellow-700"
-                                                            : "bg-red-100 text-red-700"
+                                                    ? "bg-green-100 text-green-700"
+                                                    : txn.status === "pending"
+                                                        ? "bg-yellow-100 text-yellow-700"
+                                                        : "bg-red-100 text-red-700"
                                                     }`}
                                             >
                                                 {txn.status === "success" ? "Thành công" : txn.status === "pending" ? "Đang xử lý" : "Thất bại"}

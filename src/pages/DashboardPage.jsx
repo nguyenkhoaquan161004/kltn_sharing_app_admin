@@ -36,24 +36,20 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
         try {
             // Fetch total users
-            const usersResponse = await adminApi.getAllUsers(0, 1);
-            const totalUsers = usersResponse.data.data.totalElements || 0;
+            const usersResponse = await adminApi.getAllUsers(1, 1);
+            const totalUsers = usersResponse.data.data.totalItems || 0;
 
             // Fetch all categories
             const categoriesResponse = await adminApi.getAllCategories();
-            const totalCategories = categoriesResponse.data.data.length || 0;
+            const totalCategories = categoriesResponse.data.data.data?.length || 0;
 
-            // Fetch today's transactions
-            const transactionsResponse = await adminApi.getAllTransactions(0, 100);
-            const todayTransactions = (transactionsResponse.data.data.content || []).filter(t => {
-                const transactionDate = new Date(t.createdAt);
-                const today = new Date();
-                return transactionDate.toDateString() === today.toDateString();
-            }).length;
+            // Fetch transaction stats
+            const statsResponse = await adminApi.getTransactionStats();
+            const transactionStats = statsResponse.data.data || {};
 
             setStats(prev => [
                 { ...prev[0], value: totalUsers.toString(), loading: false },
-                { ...prev[1], value: todayTransactions.toString(), loading: false },
+                { ...prev[1], value: (transactionStats.totalSharedCount || 0).toString(), loading: false },
                 { ...prev[2], value: totalCategories.toString(), loading: false },
                 { ...prev[3], value: "0", loading: false },
             ]);
@@ -109,7 +105,7 @@ export default function DashboardPage() {
                     </p>
                 </div>
 
-                {/* Quick Actions */}
+                {/* Quick Actions
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <QuickActionCard
                         title="Thêm User"
@@ -131,7 +127,7 @@ export default function DashboardPage() {
                         icon="📊"
                         path="/statistics"
                     />
-                </div>
+                </div> */}
             </div>
         </Layout>
     );

@@ -38,24 +38,31 @@ apiClient.interceptors.response.use(
 export const adminApi = {
     // Auth
     login: (email, password) =>
-        apiClient.post("/api/v2/auth/login", {
+        apiClient.post("/api/public/v2/auth/login", {
             usernameOrEmail: email,
             password,
             rememberMe: false
         }),
 
     // Users
-    getAllUsers: (page = 0, size = 10) =>
+    getAllUsers: (page = 1, size = 10) =>
         apiClient.get("/api/v2/users", { params: { page, size } }),
     deleteUser: (userId) => apiClient.delete(`/api/v2/users/${userId}`),
-    addPoints: (userId, points, reason) =>
+    addPoints: (userId, points, reason, sourceType = "ADMIN", referenceId = "") =>
         apiClient.post("/api/v2/gamification/points/add", {
             userId,
             points,
             reason,
+            sourceType,
+            referenceId,
         }),
     sendNotification: (userId, title, message) =>
-        apiClient.post("/api/v2/notifications/send", { userId, title, message }),
+        apiClient.post("/api/v2/notifications/send", {
+            userId,
+            title,
+            body: message,
+            type: "SYSTEM"
+        }),
 
     // Categories
     getAllCategories: () => apiClient.get("/api/v2/categories"),
@@ -79,8 +86,12 @@ export const adminApi = {
         apiClient.delete(`/api/v2/admin/gamification/badges/${badgeId}`),
 
     // Transactions
-    getAllTransactions: (page = 0, size = 50) =>
-        apiClient.get("/api/v2/transactions", { params: { page, size } }),
+    getTransactionStats: () =>
+        apiClient.get("/api/v2/transactions/stats"),
+    getTransactionsAsSharer: (page = 1, size = 50) =>
+        apiClient.get("/api/v2/transactions/as-sharer", { params: { page, size } }),
+    getTransactionsAsReceiver: (page = 1, size = 50) =>
+        apiClient.get("/api/v2/transactions/as-receiver", { params: { page, size } }),
     getTransactionById: (transactionId) =>
         apiClient.get(`/api/v2/transactions/${transactionId}`),
 

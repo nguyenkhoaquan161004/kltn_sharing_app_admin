@@ -22,17 +22,17 @@ export default function LoginPage() {
 
         try {
             const response = await adminApi.login(email, password);
-            
+
             // Extract tokens and user data from response
             const { data } = response.data;
-            
+
             if (data.access_token) {
                 // Store tokens in localStorage
                 localStorage.setItem("admin_access_token", data.access_token);
                 if (data.refresh_token) {
                     localStorage.setItem("admin_refresh_token", data.refresh_token);
                 }
-                
+
                 // Store user info in auth store
                 setToken(data.access_token);
                 setUser({
@@ -40,7 +40,7 @@ export default function LoginPage() {
                     id: data.user?.id,
                     username: data.user?.username,
                 });
-                
+
                 navigate("/dashboard");
             } else {
                 setError("Không nhận được token từ server");
