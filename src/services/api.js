@@ -94,16 +94,20 @@ export const adminApi = {
         apiClient.get("/api/v2/transactions/as-receiver", { params: { page, size } }),
     getTransactionById: (transactionId) =>
         apiClient.get(`/api/v2/transactions/${transactionId}`),
+    getAllTransactionsAdmin: (page = 1, size = 50) =>
+        apiClient.get("/api/v2/transactions/admin/all", { params: { page, size } }),
 
-    // Reports (Optional - endpoints may not exist)
-    getAllReports: () =>
-        apiClient.get("/api/v2/admin/reports").catch(() => ({
-            data: { data: [] },
-        })),
-    approveReport: (reportId) =>
-        apiClient.put(`/api/v2/admin/reports/${reportId}/approve`),
-    rejectReport: (reportId) =>
-        apiClient.put(`/api/v2/admin/reports/${reportId}/reject`),
+    // Reports
+    getPendingReports: (page = 1, size = 20) =>
+        apiClient.get("/api/v2/reports/pending", { params: { page, size } }),
+    getMyReports: (page = 1, size = 20) =>
+        apiClient.get("/api/v2/reports/my", { params: { page, size } }),
+    resolveReport: (reportId, data) =>
+        apiClient.put(`/api/v2/reports/${reportId}/resolve`, data),
+    dismissReport: (reportId, data) =>
+        apiClient.put(`/api/v2/reports/${reportId}/dismiss`, data),
+    createReport: (data) =>
+        apiClient.post("/api/v2/reports", data),
 };
 
 export default apiClient;

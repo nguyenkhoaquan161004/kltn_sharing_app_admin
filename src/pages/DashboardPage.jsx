@@ -7,7 +7,7 @@ export default function DashboardPage() {
     const [stats, setStats] = useState([
         { label: "Tổng User", value: "0", icon: Users, color: "bg-emerald-500", loading: true },
         {
-            label: "Giao dịch hôm nay",
+            label: "Tổng Giao dịch",
             value: "0",
             icon: ShoppingCart,
             color: "bg-cyan-500",
@@ -47,9 +47,13 @@ export default function DashboardPage() {
             const statsResponse = await adminApi.getTransactionStats();
             const transactionStats = statsResponse.data.data || {};
 
+            // Fetch all transactions (admin)
+            const transactionsResponse = await adminApi.getAllTransactionsAdmin(1, 1);
+            const totalTransactions = transactionsResponse.data.data?.totalItems || 0;
+
             setStats(prev => [
                 { ...prev[0], value: totalUsers.toString(), loading: false },
-                { ...prev[1], value: (transactionStats.totalSharedCount || 0).toString(), loading: false },
+                { ...prev[1], value: totalTransactions.toString(), loading: false },
                 { ...prev[2], value: totalCategories.toString(), loading: false },
                 { ...prev[3], value: "0", loading: false },
             ]);

@@ -127,55 +127,55 @@ export default function UsersPage() {
                             <tbody className="divide-y divide-gray-200">
                                 {filteredUsers.length > 0 ? (
                                     filteredUsers.map((user) => (
-                                    <tr key={user.userId} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-                                                    {user.profilePicture ? (
-                                                        <img
-                                                            src={user.profilePicture}
-                                                            alt={user.firstName || user.username}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <span className="text-sm font-semibold text-gray-700">
-                                                            {(user.firstName || user.username || "U")[0].toUpperCase()}
-                                                        </span>
-                                                    )}
+                                        <tr key={user.userId} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                                                        {user.profilePicture ? (
+                                                            <img
+                                                                src={user.profilePicture}
+                                                                alt={user.firstName || user.username}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <span className="text-sm font-semibold text-gray-700">
+                                                                {(user.firstName || user.username || "U")[0].toUpperCase()}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-gray-900">
+                                                            {user.firstName || user.username}
+                                                        </p>
+                                                        <p className="text-sm text-gray-500">
+                                                            {user.username}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="font-medium text-gray-900">
-                                                        {user.firstName || user.username}
-                                                    </p>
-                                                    <p className="text-sm text-gray-500">
-                                                        {user.username}
-                                                    </p>
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-700">{user.email}</td>
+                                            <td className="px-6 py-4">
+                                                <span className="inline-block bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-medium">
+                                                    {user.trustScore || 0}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => openModal(user, "points")}
+                                                        className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 text-sm font-medium"
+                                                    >
+                                                        Thêm điểm
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteUser(user.userId)}
+                                                        className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-700">{user.email}</td>
-                                        <td className="px-6 py-4">
-                                            <span className="inline-block bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-medium">
-                                                {user.trustScore || 0}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => openModal(user, "points")}
-                                                    className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 text-sm font-medium"
-                                                >
-                                                    Thêm điểm
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteUser(user.userId)}
-                                                    className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                            </td>
+                                        </tr>
                                     ))
                                 ) : (
                                     <tr>
