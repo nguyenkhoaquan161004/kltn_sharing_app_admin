@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
@@ -7,13 +7,22 @@ import { AlertCircle } from "lucide-react";
 export default function LoginPage() {
     const navigate = useNavigate();
     const setToken = useAuthStore((state) => state.setToken);
+    const setRefreshToken = useAuthStore((state) => state.setRefreshToken);
     const setUser = useAuthStore((state) => state.setUser);
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
 
     const [email, setEmail] = useState("sharioforever@gmail.com");
     const [password, setPassword] = useState("12341234");
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate("/dashboard");
+        }
+    }, [isAuthenticated, navigate]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -27,20 +36,21 @@ export default function LoginPage() {
             const { data } = response.data;
 
             if (data.access_token) {
-                // Store tokens in localStorage
-                localStorage.setItem("admin_access_token", data.access_token);
+                // Store tokens in auth store (which also saves to localStorage)
+                setToken(data.access_token);
                 if (data.refresh_token) {
-                    localStorage.setItem("admin_refresh_token", data.refresh_token);
+                    setRefreshToken(data.refresh_token);
                 }
 
                 // Store user info in auth store
-                setToken(data.access_token);
                 setUser({
                     email: data.user?.email || email,
                     id: data.user?.id,
                     username: data.user?.username,
+                    role: data.user?.role,
                 });
 
+                console.log("Login successful, redirecting to dashboard");
                 navigate("/dashboard");
             } else {
                 setError("Không nhận được token từ server");

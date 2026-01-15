@@ -22,15 +22,84 @@ apiClient.interceptors.request.use((config) => {
     return config;
 });
 
-// Response interceptor
+// Flag to prevent infinite refresh loops
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+const onRefreshed = (token) => {
+    refreshSubscribers.forEach((callback) => callback(token));
+    refreshSubscribers = [];
+};
+
+const addRefreshSubscriber = (callback) => {
+    refreshSubscribers.push(callback);
+};
+
+// Response interceptor with auto refresh logic
 apiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
-        if (error.response?.status === 401) {
-            localStorage.removeItem("admin_access_token");
-            localStorage.removeItem("admin_refresh_token");
-            window.location.href = "/login";
+        const originalRequest = error.config;
+
+        // If 401 and not already retrying, attempt to refresh token
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+            const refreshToken = localStorage.getItem("admin_refresh_token");
+
+            if (!refreshToken) {
+                // No refresh token, logout user
+                localStorage.removeItem("admin_access_token");
+                localStorage.removeItem("admin_refresh_token");
+                window.location.href = "/login";
+                return Promise.reject(error);
+            }
+
+            if (!isRefreshing) {
+                isRefreshing = true;
+
+                try {
+                    const response = await apiClient.post("/api/public/v2/auth/refresh-token", {
+                        refreshToken: refreshToken,
+                    });
+
+                    const newAccessToken = response.data.data?.access_token;
+                    const newRefreshToken = response.data.data?.refresh_token;
+
+                    if (newAccessToken) {
+                        localStorage.setItem("admin_access_token", newAccessToken);
+                        if (newRefreshToken) {
+                            localStorage.setItem("admin_refresh_token", newRefreshToken);
+                        }
+
+                        // Update original request with new token
+                        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+                        isRefreshing = false;
+                        onRefreshed(newAccessToken);
+
+                        // Retry original request
+                        return apiClient(originalRequest);
+                    } else {
+                        throw new Error("No access token in refresh response");
+                    }
+                } catch (refreshError) {
+                    console.error("Token refresh failed:", refreshError);
+                    isRefreshing = false;
+                    localStorage.removeItem("admin_access_token");
+                    localStorage.removeItem("admin_refresh_token");
+                    window.location.href = "/login";
+                    return Promise.reject(refreshError);
+                }
+            } else {
+                // If already refreshing, queue this request
+                return new Promise((resolve) => {
+                    addRefreshSubscriber((token) => {
+                        originalRequest.headers.Authorization = `Bearer ${token}`;
+                        resolve(apiClient(originalRequest));
+                    });
+                });
+            }
         }
+
         return Promise.reject(error);
     }
 );
@@ -42,6 +111,11 @@ export const adminApi = {
             usernameOrEmail: email,
             password,
             rememberMe: false
+        }),
+
+    refreshToken: (refreshToken) =>
+        apiClient.post("/api/public/v2/auth/refresh-token", {
+            refreshToken,
         }),
 
     // Users
