@@ -1,4 +1,4 @@
-import { Users, ShoppingCart, Folder, Flag } from "lucide-react";
+import { Users, ShoppingCart, Folder, Flag, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { adminApi } from "../services/api";
@@ -31,6 +31,13 @@ export default function DashboardPage() {
 
     useEffect(() => {
         fetchDashboardData();
+        
+        // Auto-refresh dashboard data every 10 seconds
+        const interval = setInterval(() => {
+            fetchDashboardData();
+        }, 10000);
+        
+        return () => clearInterval(interval);
     }, []);
 
     const fetchDashboardData = async () => {
@@ -51,11 +58,24 @@ export default function DashboardPage() {
             const transactionsResponse = await adminApi.getAllTransactionsAdmin(1, 1);
             const totalTransactions = transactionsResponse.data.data?.totalItems || 0;
 
+            // Fetch pending reports
+            let totalReports = 0;
+            try {
+                const reportsResponse = await adminApi.getPendingReports(0, 1);
+                console.log("[Dashboard] Reports response:", reportsResponse);
+                console.log("[Dashboard] Reports data:", reportsResponse.data);
+                totalReports = reportsResponse.data.totalItems || 0;
+                console.log("[Dashboard] Total reports:", totalReports);
+            } catch (err) {
+                console.error("Error fetching reports:", err);
+                totalReports = 0;
+            }
+
             setStats(prev => [
                 { ...prev[0], value: totalUsers.toString(), loading: false },
                 { ...prev[1], value: totalTransactions.toString(), loading: false },
                 { ...prev[2], value: totalCategories.toString(), loading: false },
-                { ...prev[3], value: "0", loading: false },
+                { ...prev[3], value: totalReports.toString(), loading: false },
             ]);
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
@@ -67,11 +87,21 @@ export default function DashboardPage() {
         <Layout>
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
-                    <p className="text-gray-500 mt-2">
-                        Chào mừng bạn đến với Admin Dashboard
-                    </p>
+                <div className="mb-8 flex items-center justify-between">
+                    <div>
+                        <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
+                        <p className="text-gray-500 mt-2">
+                            Chào mừng bạn đến với Admin Dashboard
+                        </p>
+                    </div>
+                    <button
+                        onClick={fetchDashboardData}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                        title="Refresh dashboard data"
+                    >
+                        <RefreshCw size={18} />
+                        Refresh
+                    </button>
                 </div>
 
                 {/* Stats Grid */}

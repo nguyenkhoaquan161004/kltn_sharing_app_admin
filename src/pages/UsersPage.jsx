@@ -42,8 +42,9 @@ export default function UsersPage() {
 
         try {
             await adminApi.deleteUser(userId);
-            setUsers(users.filter((u) => u.userId !== userId));
             alert("Xóa user thành công");
+            // Reload users list after deletion
+            await fetchUsers(currentPage);
         } catch (err) {
             alert("Lỗi: " + (err.response?.data?.message || err.message));
         }
